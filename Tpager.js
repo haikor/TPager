@@ -4,9 +4,21 @@
 // @version      0.2
 // @description  自动添加下一页按钮，方便按顺序阅读学习文档，防止跳跃性的学习操作!
 // @author       teck
-// @match        *://dubbo.apache.org/*
-// @match        *://opendocs.alipay.com/*
-// @match        *://developers.weixin.qq.com/*
+
+// @match        *://cloud.baidu.com/*
+// @match        *://ai.baidu.com/*
+// @match        *://*.alipay.com/*
+// @match        *://*.aliyun.com/*
+// @match        *://*.weixin.qq.com/*
+
+// @include       http*://doc*
+// @include       http*://help*
+// @include       http*://api*
+// @include       http*://support*
+
+// @include       */docs/*
+// @include       */doc/*
+
 // @grant        none
 // ==/UserScript==
 
@@ -22,6 +34,28 @@
             items = document.querySelectorAll("a");
         }
 
+
+        var classes = [];
+        items.forEach(function(e) {
+            e.classList.forEach(
+                function(cls) {
+                    classes.push(cls);
+
+                }
+            );
+            Array.from(e.children).forEach(function(child) {
+                child.classList.forEach(
+                    function(c) {
+                        classes.push(c);
+                    }
+                );
+            });
+        });
+
+        var cls = GetArrayMost(classes)[0];
+
+        items = Array.from(items).filter(e => e.outerHTML.match("class=\"[^\"]*" + cls + "[^\"]*\""));
+
         if (document.getElementById("teckNext")) {
             if (items.length == itemsCount) {
                 //页面元素没变
@@ -35,7 +69,7 @@
             }
         } else {
             var div = document.createElement("div");
-            div.innerHTML = "<div style='position: fixed;border-radius: 40%;width: 60px;height: 30px;left: 40%;bottom: 20px;background-color:#eeeeee;text-align:center;'><a id=teckBack href='javascript:void(0);'>&lt;&lt;</a></div>" + "<div style='position: fixed;border-radius: 40%;width: 60px;height: 30px;left: 60%;bottom: 20px;background-color:#eeeeee;text-align:center;'><a id=teckNext href='javascript:void(0);'>&gt;&gt;</a></div>";;
+            div.innerHTML = "<div style='position: fixed;border-radius: 45%;width: 50px;height: 50px;line-height:50px;left: 40%;bottom: 30px;background-color:#eeeeee;text-align:center;z-index:99999;'><a id=teckBack href='javascript:void(0);'>&lt;&lt;</a></div>" + "<div style='position: fixed;border-radius: 45%;width: 50px;height: 50px;line-height:50px;left: 60%;bottom: 30px;background-color:#eeeeee;text-align:center;z-index:99999;'><a id=teckNext href='javascript:void(0);'>&gt;&gt;</a></div>";;
             document.body.appendChild(div);
         }
         itemsCount = items.length;
@@ -46,11 +80,11 @@
         var idx = 0;
 
 
-        var selectedKeys = ["select", "active", "current"]
+        var selectedKeys = ["select", "active", "current", "action"]
         items.forEach(function(item, i) {
             selectedKeys.forEach(
                 function(selectedKey, k) {
-                    if (item.outerHTML.match("class=\"[^\"]*" + selectedKey + "[^\"]*\"")) {
+                    if (item.outerHTML.match("class=\"[^\"]*" + selectedKey + "[^\"]*\"") && item.outerHTML.match("href=[\"'][^\"']{2,}[\"']")) {
                         idx = i;
                     }
                 }
@@ -67,7 +101,7 @@
         };
 
         function click(items, btn, idx) {
-            var item = items.item(idx);
+            var item = items[idx];
             if (item && !item.href) {
                 var oldItem = item;
                 item = item.querySelector("a");
@@ -106,6 +140,25 @@
         document.onkeydown = keyCheck;
 
         setTimeout(render, wait);
+    }
+
+    function GetArrayMost(arr) {
+        var arrMap = new Map();
+        var key = arr[0],
+            value = 1;
+        arr.forEach((item, index) => {
+            if (arrMap.get(item) !== undefined) {
+                let num = arrMap.get(item);
+                arrMap.set(item, ++num);
+            } else {
+                arrMap.set(item, 1);
+            }
+            if (arrMap.get(item) > value) {
+                key = item;
+                value = arrMap.get(item);
+            }
+        });
+        return [key, value];
     }
 
     setTimeout(render, wait);
