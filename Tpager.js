@@ -5,15 +5,17 @@
 // @description  自动添加下一页按钮，方便按顺序阅读学习文档，防止跳跃性的学习操作!
 // @author       teck
 
-// @match        *://cloud.baidu.com/*
-// @match        *://ai.baidu.com/*
-// @match        *://*.alipay.com/*
-// @match        *://*.aliyun.com/*
-// @match        *://*.weixin.qq.com/*
+// @match        *://cloud.baidu.com/doc/*
+// @match        *://ai.baidu.com/ai-doc/*
+// @match        *://opendocs.alipay.com/*
+// @match        *://help.aliyun.com/*
+// @match        *://pay.weixin.qq.com/*
+// @match        *://developers.weixin.qq.com/*
 
 // @include       http*://doc*
 // @include       http*://help*
 // @include       http*://api*
+// @include       http*://open*
 // @include       http*://support*
 
 // @include       */docs/*
@@ -27,34 +29,12 @@
 
     var itemsCount = 0;
     var wait = 500;
+    var minItem = 10;
+    var debuggerItem = "";
+    var selectedKeys = ["select", "active", "current", "action", "on", "selected"]
 
     function render() {
-        var items = document.querySelectorAll("li");
-        if (items.length < 10) {
-            items = document.querySelectorAll("a");
-        }
-
-
-        var classes = [];
-        items.forEach(function(e) {
-            e.classList.forEach(
-                function(cls) {
-                    classes.push(cls);
-
-                }
-            );
-            Array.from(e.children).forEach(function(child) {
-                child.classList.forEach(
-                    function(c) {
-                        classes.push(c);
-                    }
-                );
-            });
-        });
-
-        var cls = GetArrayMost(classes)[0];
-
-        items = Array.from(items).filter(e => e.outerHTML.match("class=\"[^\"]*" + cls + "[^\"]*\""));
+        var items = FilterItems();
 
         if (document.getElementById("teckNext")) {
             if (items.length == itemsCount) {
@@ -77,25 +57,18 @@
 
         var next = document.getElementById("teckNext");
         var back = document.getElementById("teckBack");
-        var idx = 0;
 
+        var idx = GetCurrentIdx(items);
 
-        var selectedKeys = ["select", "active", "current", "action"]
-        items.forEach(function(item, i) {
-            selectedKeys.forEach(
-                function(selectedKey, k) {
-                    if (item.outerHTML.match("class=\"[^\"]*" + selectedKey + "[^\"]*\"") && item.outerHTML.match("href=[\"'][^\"']{2,}[\"']")) {
-                        idx = i;
-                    }
-                }
-            )
-        });
-        console.log("current idx:" + idx);
         next.onclick = function() {
+            items = FilterItems();
+            idx = GetCurrentIdx(items);
             idx = idx + 1;
             click(items, back, idx);
         };
         back.onclick = function() {
+            items = FilterItems();
+            idx = GetCurrentIdx(items);
             idx = idx - 1;
             click(items, back, idx);
         };
@@ -140,6 +113,61 @@
         document.onkeydown = keyCheck;
 
         setTimeout(render, wait);
+    }
+
+    function FilterItems() {
+        var lis = document.querySelectorAll("li");
+
+        var dds = document.querySelectorAll("dd");
+        var items = lis.length > dds.length ? lis : dds;
+
+        if (items.length < minItem) {
+            items = document.querySelectorAll("a");
+        }
+
+
+        var classes = [];
+        items.forEach(function(e) {
+            e.classList.forEach(
+                function(cls) {
+                    classes.push(cls);
+
+                }
+            );
+            Array.from(e.children).forEach(function(child) {
+                child.classList.forEach(
+                    function(c) {
+                        classes.push(c);
+                    }
+                );
+            });
+        });
+
+        var cls = GetArrayMost(classes)[0];
+
+        items = Array.from(items).filter(e => (e.outerHTML.match("class=\"[^\"]*" + cls + "[^\"]*\"") || e.innerHTML.match("href") && e.innerText.length < 20) && e.innerHTML.indexOf('<ul>') == -1);
+        return items;
+    }
+
+    function GetCurrentIdx(items) {
+        var idx = 0;
+        items.forEach(function(item, i) {
+            selectedKeys.forEach(
+                function(selectedKey, k) {
+                    if (debuggerItem && item.outerHTML.indexOf(debuggerItem) > -1) {
+                        debugger
+                    }
+
+                    if (item.outerHTML.match("class=\"[^\"]*(\\b|-)\\b" + selectedKey + "(\\b|-)[^\"]*\"")) {
+                        if (item.outerHTML.match("href=[\"'][^\"']{2,}[\"']") && !item.outerHTML.match("href=[\"']javascript.*[\"']") && !item.outerHTML.match("href=[\"']#.*[\"']")) {
+                            idx = i;
+                        }
+                    }
+                }
+            )
+        });
+        console.log("current idx:" + idx);
+        return idx;
     }
 
     function GetArrayMost(arr) {
